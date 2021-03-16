@@ -300,6 +300,7 @@ std::vector<RTCGeometry> LoadObject(RTCDevice& g_device, std::string path, Conso
 }
 */
 
+//nitpick but consider namespacing this, since the name is quite generic
 
 struct Object
 {

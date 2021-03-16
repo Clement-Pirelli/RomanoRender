@@ -15,6 +15,7 @@
 #ifndef MATHS_UTILS
 #define MATHS_UTILS
 
+//nitpick, but I'd make these into constexpr floats
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -22,7 +23,6 @@
 #define PLUS_INF std::numeric_limits<float>::infinity();
 #define MIN_INF -std::numeric_limits<float>::infinity();
 #define INV_LOG2 1.442695040888963387004650940071
-
 
 // helper functions
 template <typename T>
@@ -44,6 +44,7 @@ inline float fastlog2(float x) { return std::log(x) * INV_LOG2; }
 inline float square(float x) { return x * x; }
 inline float modulo(float x) { return x - std::floor(x); }
 
+//no need to take these by const ref, copy is fine for 4 bytes
 vec3 to_polar(const vec2& uv);
 
 

@@ -46,7 +46,7 @@ inline void set_translation(mat44& m, const vec3& t)
     m[11] = t.z;
 }
 
-
+//this can probably be removed
 inline void set_rotation(mat44& m, const vec3& r)
 {
     /*

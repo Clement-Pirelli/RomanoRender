@@ -1,11 +1,14 @@
 #include "integrators.h"
 
-
+//this is a pretty massive function, which makes it quite hard to read; consider splitting it up into smaller functions, which you could put in an anonymous namespace
 // ray cast function used to render. Return a vec3 color
 vec3 pathtrace(int s, std::vector<vec2>& sampler, const Ray& r, vec3 color, std::vector<Material>& mats, Render_Settings& settings, std::vector<Light*>& lights, int depth[], std::vector<int>& light_path, int samples[], Stats& stat)
 {
 
     //const float random_float = generate_random_float();
+    //nitpick, but __int64 is a compiler intrinsic, the cstdint header has int64_t which can be used instead
+    //could also be const
+    //also, generate_random_float_fast takes an int, so __int64 gets narrow converted here I believe?
     __int64 seed = s + samples[0];
     const float random_float = generate_random_float_fast(seed);
     const int sampler_id = (int)(random_float * (sampler.size() - 1));
@@ -18,6 +21,7 @@ vec3 pathtrace(int s, std::vector<vec2>& sampler, const Ray& r, vec3 color, std:
     RTCIntersectContext context;
     rtcInitIntersectContext(&context);
 
+    //this could be made into a function
     float near_clipping = 0.0f;
     float far_clipping = 10000.0f;
 
@@ -34,6 +38,7 @@ vec3 pathtrace(int s, std::vector<vec2>& sampler, const Ray& r, vec3 color, std:
     rayhit.ray.flags = 0;
     rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
     rayhit.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
+    //until here, for ease of reading
 
     vec3 new_color(0.0f);
 
@@ -41,8 +46,16 @@ vec3 pathtrace(int s, std::vector<vec2>& sampler, const Ray& r, vec3 color, std:
 
     if (rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID)
     {
-        int hit_mat_id = rayhit.hit.geomID;
+        //consider making this entire if body a function
+        //many variables here can be made const; I've highlighted a few but as a rule of thumb make everything const and then remove what doesn't work
+        //this may seem like a nitpick but it could affect the generated machine code, plus it saves you from making mistakes
+        //this snippet of a cppcon is a pretty cool visualization of that: https://youtu.be/zBkNBP00wJE?t=1658
 
+        //this can be made const
+        int hit_mat_id = rayhit.hit.geomID;
+        //mats[hit_mat_id] is repeated quite often - consider something like:
+        //Material& material = mats[hit_mat_id];
+        //which can then replace all occurences of mats[hit_mat_id]
         if (mats[hit_mat_id].islight && dot(mats[hit_mat_id].normal, r.direction()) < 0 && depth[0] == 6)
         {
             return mats[hit_mat_id].clr;
@@ -211,7 +224,7 @@ vec3 pathtrace(int s, std::vector<vec2>& sampler, const Ray& r, vec3 color, std:
             for (int i = 1; i < steps + 1; i++)
             {
                 //if (generate_random_float() > 0.3f) break;
-
+                //could be its own function
                 RTCRayHit shadow;
                 shadow.ray.org_x = position.x;
                 shadow.ray.org_y = position.y;
@@ -274,7 +287,9 @@ vec3 pathtrace(int s, std::vector<vec2>& sampler, const Ray& r, vec3 color, std:
 
                         float distance = 10000.0f;
                         float area_shadow = 1.0f;
-
+                        //this would be fairly tricky since there's a lot of variables at play, but consider making this a function on the base class
+                        //which is then overriden by Point_Light and Square_Light
+                        //it could return a small struct with whether to continue and what to set distance to for example
                         if (ptlight = dynamic_cast<Point_Light*>(light)) distance = dist(hit_pos, ptlight->position) - 0.001f;
 
                         else if (sqlight = dynamic_cast<Square_Light*>(light))
@@ -289,8 +304,10 @@ vec3 pathtrace(int s, std::vector<vec2>& sampler, const Ray& r, vec3 color, std:
                             }
                         }
 
+                        //could be const
                         float NdotL = std::max(0.f, dot(hit_normal, ray_dir));
 
+                        //could be its own function
                         RTCRay shadow;
                         shadow.org_x = new_ray.origin().x;
                         shadow.org_y = new_ray.origin().y;
@@ -313,6 +330,7 @@ vec3 pathtrace(int s, std::vector<vec2>& sampler, const Ray& r, vec3 color, std:
                     }
                 }
 
+                //could be const
                 vec3 transmitted_color = vec3(hit_sss_color.x * fit(t * absorption, 0.0f, radius.x, 1.0f, 0.0f),
                     hit_sss_color.y * fit(t * absorption, 0.0f, radius.y, 1.0f, 0.0f),
                     hit_sss_color.z * fit(t * absorption, 0.0f, radius.z, 1.0f, 0.0f));
@@ -345,20 +363,22 @@ vec3 pathtrace(int s, std::vector<vec2>& sampler, const Ray& r, vec3 color, std:
             }
             else
             {
+                //could be const
                 vec3 H = ggx_microfacet(hit_normal, hit_roughness, sample);
                 new_ray_dir = reflect(r.direction(), H.normalize());
                 light_path.push_back(2);
                 new_depth[1] -= 1;
                 mix = (hit_reflectance * clamp(f0, 0.04f, 1.0f) + hit_metallic) * mats[hit_mat_id].reflection_color;
             }
-
+            
+            //could be const
             Ray new_ray(hit_pos + hit_normal * 0.001f, new_ray_dir);
 
             indirect += pathtrace(s, sampler, new_ray, color, mats, settings, lights, new_depth, light_path, samples, stat);
         }
 
 
-
+        //this could do with some intermediary const variables
         color += kd * (new_color * inv_pi * radiance) + (refrac * hit_refraction) + ggx * hit_specular_color * hit_specular + indirect * mix + trans * hit_sss;
     }
 
@@ -367,6 +387,7 @@ vec3 pathtrace(int s, std::vector<vec2>& sampler, const Ray& r, vec3 color, std:
     
     else
     {
+        //consider making this a function
         for (auto light : lights)
         {
             Dome_Light* domelight = nullptr;
@@ -375,12 +396,16 @@ vec3 pathtrace(int s, std::vector<vec2>& sampler, const Ray& r, vec3 color, std:
             {
                 int id = 0;
 
+                //for readability's sake it might be useful to split this into multiple const bools with descriptive names
+                //the 6 and 10 magic numbers could also be made into constexpr variables with descriptive name
+                //also, maybe I'm reading this wrong, but as far as I can tell "id" is never used?
                 if (depth[0] >= 6 || depth[0] >= 6 && depth[1] < 6 || depth[0] >= 6 && depth[2] < 10) id = -1;
                 
                 else if (light_path.size() > 1 && light_path[0] == 1 && light_path[1] == 3) id = -1;
 
                 else if (depth[0] >= 6 && !domelight->visible) return vec3(0.0f);
 
+                //could be constexpr
                 const float d = 0.0f;
                 return domelight->return_light_throughput(d);
             }
@@ -395,7 +420,8 @@ vec3 pathtrace(int s, std::vector<vec2>& sampler, const Ray& r, vec3 color, std:
         //std::cout << color << "\n";
         color = vec3(0.5f);
     }
-
+    
+    //no need for the if statement, std::min takes care of that
     // clamping
     if (color.x > 1.0f || color.y > 1.0f || color.z > 1.0f)
     {
@@ -409,6 +435,8 @@ vec3 pathtrace(int s, std::vector<vec2>& sampler, const Ray& r, vec3 color, std:
 // funtion used to render a single pixel, used for progressive rendering
 void render_p(int s, std::vector<vec2>& sampler, color_t* pixels, int x, int y, Render_Settings& settings, Camera& cam, std::vector<Material>& mats, std::vector<Light*>& lights, int samples[], int bounces[], Stats& stat)
 {
+    //many variables here could be const or constexpr
+    //this might seem nitpicky but in some cases it improves performance by allowing the compiler to optimize some stuff out
     float scale = tan(deg2rad(cam.fov * 0.5));
 
     vec3 up(0, 1, 0);
@@ -478,8 +506,10 @@ void render_p(int s, std::vector<vec2>& sampler, color_t* pixels, int x, int y, 
 // funtion used to render a single pixel, used for progressive rendering
 void render_p_fast(int s, std::vector<vec2>& sampler, color_t* pixels, int x, int y, Render_Settings& settings, Camera& cam, std::vector<Material>& mats, std::vector<Light*>& lights, int samples[], int bounces[], Stats& stat)
 {
+    //many variables here could be const or constexpr
+    //this might seem nitpicky but in some cases it improves performance by allowing the compiler to optimize some stuff out
     float scale = tan(deg2rad(cam.fov * 0.5));
-
+    
     vec3 up(0, 1, 0);
 
     vec3 zAxis = ((cam.pos - cam.lookat).normalize());
@@ -525,15 +555,18 @@ void render_p_fast(int s, std::vector<vec2>& sampler, color_t* pixels, int x, in
         col = pathtrace(s, sampler, ray, col, mats, settings, lights, bounces, light_path, samples, stat);
 
     //col = HableToneMap(col);
-
+    //this if statement is redundant, max is already conditional
     if (col.x < 0.0f || col.y < 0.0f || col.z < 0.0f)
     {
         col.x = std::max(col.x, 0.0f);
         col.y = std::max(col.y, 0.0f);
         col.z = std::max(col.z, 0.0f);
 
-    }
+    }   
 
+    //comma operator :O
+    //this means you'll always increment rgb by .45, I'm not sure that's what you want to do
+    //also, should probably be .45f, and should be a constexpr variable with a descriptive name
     pixels[x + y * (settings.xres)].R += col.x, 0.45;
     pixels[x + y * (settings.xres)].G += col.y, 0.45;
     pixels[x + y * (settings.xres)].B += col.z, 0.45;

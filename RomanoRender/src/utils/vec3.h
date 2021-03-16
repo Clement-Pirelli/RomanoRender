@@ -45,6 +45,7 @@ inline float rsqrt(float num)
 	return y;
 }
 
+//on all functions below: no need to use const ref - copy is fine
 
 // ostream operator for easier cout
 inline std::ostream& operator<<(std::ostream& out, const vec3& v) { out << v.x << ", " << v.y << ", " << v.z << std::endl; return out; }

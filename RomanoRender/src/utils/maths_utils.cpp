@@ -4,9 +4,16 @@
 // helper functions
 vec3 to_polar(const vec2& uv)
 {
+    //these can be const
     float theta = 2.0 * M_PI * uv.x + -M_PI / 2.0;
     float phi = M_PI * uv.y;
-
+    //this can also be const, with a {} initialization, or can just be returned like:
+    //return {
+    // cos(theta) * sin(phi),
+    // sin(theta) * sin(phi),
+    // cos(phi)
+    //}
+    //the same can be said about most of the functions in this header, I'll mark where with "const"
     vec3 n;
 
     n.x = cos(theta) * sin(phi);
@@ -21,6 +28,7 @@ vec3 to_polar(const vec2& uv)
 // approx functions
 float approx_acos(float x)
 {
+    //const
     float negate = float(x < 0);
     x = abs(x);
     float ret = -0.0187293;
@@ -38,6 +46,7 @@ float approx_acos(float x)
 
 float approx_atan(float z)
 {
+    //constexpr is more fitting
     const float n1 = 0.97239411f;
     const float n2 = -0.19194795f;
     return (n1 + n2 * z * z) * z;
@@ -46,11 +55,14 @@ float approx_atan(float z)
 
 float approx_atan2(float y, float x)
 {
+    //constexpr is more fitting
     const float n1 = 0.97239411f;
     const float n2 = -0.19194795f;
     float result = 0.0f;
     if (x != 0.0f)
     {
+        //I believe this is invoking undefined behaviour: https://stackoverflow.com/questions/11373203/accessing-inactive-union-member-and-undefined-behavior
+        //it can be fine if you're targetting just one compiler and one architecture, just be aware that even then, it might silently break on a compiler update etc.
         const union { float flVal; int nVal; } tYSign = { y };
         const union { float flVal; int nVal; } tXSign = { x };
         if (fabsf(x) >= fabsf(y))
@@ -85,12 +97,14 @@ float approx_atan2(float y, float x)
 
 float inv_sqrt(float number)
 {
+    //undefined behaviour
     union {
         float f;
         uint32_t i;
     } conv;
 
     float x2;
+    //can be constexpr
     const float threehalfs = 1.5F;
 
     x2 = number * 0.5F;
@@ -104,6 +118,10 @@ float inv_sqrt(float number)
 // trigonometry functions
 void createBasis(const vec3& hit_normal, vec3& tangent, vec3& bitangent)
 {
+    //this is very nitpicky but you could use a ternary here, and make up const:
+    // constexpr vec3 globalUp = vec3(.0f, 1.0f,.0f);
+    // const vec3 up = (dot(globalUp, hit_normal) > .9f) ? vec3(.0f, .0f, 1.0f) : globalUp
+    //I would also recommend naming "magic numbers" like .9f and vec3(.0f, .0f, 1.0f), since they'll probably be really hard to read when you've forgotten about this function
     vec3 up(0.0f, 1.0f, 0.0f);
     if (dot(up, hit_normal) > 0.9f) up = vec3(0.0f, 0.0f, 1.0f);
 
@@ -122,6 +140,7 @@ void worldToTangent(const vec3& hit_normal, const vec3& tangent, const vec3& bit
 
 vec3 tangentToWorld(const vec3& hit_normal, const vec3& tangent, const vec3& bitangent, const vec3& t)
 {
+    //nitpicky but could be a one liner, wdir isn't doing too much here
     vec3 wdir;
     wdir = tangent * t.x + hit_normal * t.y + bitangent * t.z;
     return wdir;
@@ -177,6 +196,7 @@ vec3 refract(vec3& i, vec3& n, float ior)
         in = false;
     }
 
+    //could be const
     float dt = dot(i, n_t);
     float n_ior = n1 / n2;
 
@@ -205,6 +225,7 @@ vec3 refract(vec3& i, vec3& n, float ior)
 
 vec3 face_forward(const vec3& dir, const vec3& _Ng)
 {
+    //nitpicky but could use _Ng
     const vec3 Ng = _Ng;
     return dot(dir, Ng) < 0.0f ? Ng : Ng * -1;
 }

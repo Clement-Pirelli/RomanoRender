@@ -3,7 +3,7 @@
 
 #include "utils/maths_utils.h"
 
-
+//no need to take these by const ref, copy is fine
 float oren_nayar(const float sigma, const float R, const vec3& wo, const vec3& wi);
 
 float ggx_normal_distribution(const float& NdotH, const float& roughness);

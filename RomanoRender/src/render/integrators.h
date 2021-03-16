@@ -18,6 +18,7 @@
 #ifndef RENDER
 #define RENDER
 
+//I'm not sure since I haven't looked at all the code yet, but the settings parameter could be const it seems?
 
 // ray cast function used to render. Return a vec3 color
 vec3 pathtrace(int s, std::vector<vec2>& sampler, const Ray& r, vec3 color, std::vector<Material>& mats, Render_Settings& settings, std::vector<Light*>& lights, int depth[], std::vector<int>& light_path, int samples[], Stats& stat);

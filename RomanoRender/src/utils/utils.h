@@ -83,7 +83,7 @@ inline auto get_time()
 
 
 
-
+//could be constexpr
 #define  Pr  .299
 #define  Pg  .587
 #define  Pb  .114
@@ -104,7 +104,6 @@ inline vec3 changeSaturation(vec3& color, float change) {
 
 
 
-
 inline float Saturate(float x)
 {
     if (x < 0.0f) {
@@ -117,7 +116,7 @@ inline float Saturate(float x)
     return x;
 }
 
-
+//could be constexpr, should at least be const
 static float inv_pi = 0.31830988618379067154;
 
 

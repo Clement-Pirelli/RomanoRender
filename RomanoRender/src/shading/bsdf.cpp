@@ -4,10 +4,12 @@
 float oren_nayar(const float sigma, const float R, const vec3& wo, const vec3& wi)
 {
 	//sigma = deg2rad(sigma);
+	//could be const
 	float sigma2 = sigma * sigma;
 	float A = 1.0f - (sigma2 / (2.f * (sigma2 + 0.33f)));
 	float B = 0.45f * sigma2 / (sigma2 + 0.09f);
 
+	//could be const
 	float sinThetaI = SinTheta(wi);
 	float sinThetaO = SinTheta(wo);
 
@@ -63,6 +65,7 @@ vec3 schlick_fresnel(const vec3& f0, const float& LdotH)
 
 vec3 ggx_microfacet(const vec3& hit_normal, const float& roughness, const vec2& sample)
 {
+	//could be const
 	float r0 = sample.x;
 	float r1 = sample.y;
 
